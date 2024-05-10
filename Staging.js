@@ -1,5 +1,4 @@
 let params = {
-
     type:'table',
     object_name:'tb_dbm_pessoa_fisica_ods_hist',
     object_description: 'Tabela com informações da pessoa fisica - DBM',
@@ -8,9 +7,7 @@ let params = {
     pec_obs:'PIT0083 - DBM',
     custom_tags:['PIT0083'],
     developer:['geovane_melo_da_silva_ext@carrefour.com'],
-
 columns_description: {
-    
 PESS_ID_PESS: 'FK - Identificador da Pessoa. Numero Sequencial',
 PEFI_NU_CPF: 'Numero do CPF da PESSOA. Indice pelo CPF para acesso',
 PEFI_NM_PESS: 'Nome completo da PESSOA',
