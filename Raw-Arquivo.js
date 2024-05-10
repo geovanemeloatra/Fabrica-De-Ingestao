@@ -2,6 +2,7 @@ let parameters = {
   format: 'CSV',
   table_name: 'tsys_cpaymentslips',
   table_description: 'Tabela dados transacionais da TSYS',
+  cluster_by: ["ingestion_ref_date"],
   developer: ['kleber_albuquerque_de_lima_ext@carrefour.com','carlos_eduardo_rocha_araujo_ext@carrefour.com'],
   pec: 2,
   custom_tags:['PIT0002'],
