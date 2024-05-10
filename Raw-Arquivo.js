@@ -16,7 +16,7 @@ let parameters = {
       {name: "schedule_name", value: "tsys_cpaymentslips"}
     , {name: "data_classification", value: "Internal"}
     , {name: "partitioned_table", value: "true"}
-    , {name: "clustered_table", value: "false"}
+    , {name: "clustered_table", value: "true"}
     , {name: "update_frequency", value: "Daily"}
     , {name: "load_type", value: "Incremental"}
     , {name: "data_retention", value: "Not Applicable"}
