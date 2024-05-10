@@ -56,7 +56,6 @@ let params = {
       cpd:'Data Central de Processamento (CPD) da transação disputada.'
     },
     object_description: 'Tabela contém dados do caso de disputa criado, incluindo dados de entrada do operador, dados da transação de início e posterior resolução.',
-    developer: ['elizabeth_da_costa_ext@carrefour.com','cynthia_lorena_mendoza_ext@carrefour.com'],
     data_governance: [
     {name: "schedule_name", value: "tsys_dispcases"},
     {name: "data_classification", value: "Internal"},
