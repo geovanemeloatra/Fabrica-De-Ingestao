@@ -9,7 +9,7 @@ let parameters = {
    partition_by: {column: 'ingestion_timestamp', type: 'timestamp', granularity: 'day'},
    cluster_by: ["ingestion_ref_date"],
    ingestion_ref_date_column: "FORMAT_DATE('%Y%m%d', dh_criac)",
-   custom_tags: ['PIT0070'],
+   custom_tags: ['PIT 0070'],
    pec: 70,
    pec_obs: 'PIT0070 - Ewally',
 

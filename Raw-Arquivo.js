@@ -6,7 +6,7 @@ let parameters = {
   developer: ['kleber_albuquerque_de_lima_ext@carrefour.com','carlos_eduardo_rocha_araujo_ext@carrefour.com'],
   pec: 2,
   custom_tags:['PIT0002'],
-  pec_obs: 'PIT0002 - TSYS',
+  pec_obs: 'PIT 0002 - TSYS',
   field_delimiter: '|',
   skip_leading_rows: 0,
   allow_jagged_rows: true,

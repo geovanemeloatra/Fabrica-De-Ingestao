@@ -8,7 +8,7 @@ let params = {
     cluster_by: ["ingestion_ref_date"],
     unique_key: ["serno", "ingestion_ref_date"],
     pec: 2,
-    pec_obs: 'PIT0002 - TSYS',
+    pec_obs: 'PIT 0002 - TSYS',
     custom_tags:['PIT0002'],
     developer: ["matheus_felippe_silva_ext@carrefour.com"],
     pre_ops_declaration: `DECLARE P_MAX_TIMESTAMP TIMESTAMP DEFAULT (SELECT COALESCE(MAX(ingestion_timestamp), TIMESTAMP('1900-01-01')) FROM \`${dataform.projectConfig.defaultDatabase}.raw.tsys_servicefees_clean\`);`,

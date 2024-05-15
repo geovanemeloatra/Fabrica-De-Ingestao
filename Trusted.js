@@ -57,13 +57,13 @@ let params = {
     },
     object_description: 'Tabela contém dados do caso de disputa criado, incluindo dados de entrada do operador, dados da transação de início e posterior resolução.',
     data_governance: [
-    {name: "schedule_name", value: "tsys_dispcases"},
-    {name: "data_classification", value: "Internal"},
-    {name: "partitioned_table", value: "true"},
-    {name: "clustered_table", value: "true"},
-    {name: "update_frequency", value: "Daily"},
-    {name: "load_type", value: "Incremental"},
-    {name: "data_retention", value: "Not Applicable"}],
+      {name: "schedule_name", value: "tsys_dispcases"},
+      {name: "data_classification", value: "Internal"},
+      {name: "partitioned_table", value: "true"},
+      {name: "clustered_table", value: "true"},
+      {name: "update_frequency", value: "Daily"},
+      {name: "load_type", value: "Incremental"},
+      {name: "data_retention", value: "Not Applicable"}],
    
     policy_tags:  {
       cardholdername: 'pii',
