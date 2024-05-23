@@ -64,7 +64,12 @@ let params = {
       {name: "update_frequency", value: "Daily"},
       {name: "load_type", value: "Incremental"},
       {name: "data_retention", value: "Not Applicable"}],
-   
+
+    data_governance_column: [
+    {column:'cardholdername', name:'pii', value:'true'},
+    {column:'cardnumber', name:'pii', value:'true'}
+],
+
     policy_tags:  {
       cardholdername: 'pii',
       cardnumber: 'pii',
