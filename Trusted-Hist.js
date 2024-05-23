@@ -1,12 +1,11 @@
 let params = {
-
     type: "incremental",
     dataset: "trusted",
     object_name: 'tsys_servicefees_hist',
     object_description:"Tabela de dados transacionais do sistema TSYS que representa as Taxas de Serviço",
     partition_by: {column: 'ingestion_timestamp', type: 'timestamp', granularity: 'day'},
-    unique_key: ["serno", "ingestion_ref_date"],
     cluster_by: ["ingestion_ref_date"],
+    unique_key: ["serno", "ingestion_ref_date"],
     pec: 2,
     pec_obs: 'PIT 0002 - Tsys',
     custom_tags:['PIT0002'],
@@ -14,9 +13,9 @@ let params = {
     pre_ops_declaration: `DECLARE P_MAX_TIMESTAMP TIMESTAMP DEFAULT (SELECT COALESCE(MAX(ingestion_timestamp), TIMESTAMP('1900-01-01')) FROM \`${dataform.projectConfig.defaultDatabase}.trusted.tsys_servicefees_hist\`);`,
     columns: ["*"] ,
 
- policy_tags: {
-
-      },
+    policy_tags: {
+    },
+    
     data_governance: [
           {name: "schedule_name", value: "tsys_servicefees"}
         , {name: "data_classification", value: "Internal"}

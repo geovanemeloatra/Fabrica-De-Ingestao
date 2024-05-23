@@ -12,6 +12,7 @@ let parameters = {
   allow_jagged_rows: true,
   ignore_unknown_values: true,
   partition_by: {column: 'ingestion_timestamp', type: 'timestamp', granularity: 'day'},
+  cluster_by: ["ingestion_ref_date"],
   data_governance: [
       {name: "schedule_name", value: "tsys_cpaymentslips"}
     , {name: "data_classification", value: "Internal"}
