@@ -42,6 +42,13 @@ let params = {
         {name: "load_type", value: "Incremental"},
         {name: "data_retention", value: "Not Applicable"}
     ],
+    
+data_governance_column: [
+    {column:'PEFI_NU_CPF', name:'pii', value:'true'},
+    {column:'PEFI_NM_PESS', name:'pii', value:'true'},
+    {column:'PEFI_DT_NASC', name:'pii', value:'true'},
+    {column:'PEFI_VL_RENDAINFO', name:'pii', value:'true'}
+],
 
     policy_tags: {
         PEFI_NU_CPF: 'pii',
