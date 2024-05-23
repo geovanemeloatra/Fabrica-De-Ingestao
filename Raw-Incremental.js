@@ -51,6 +51,12 @@ let parameters = {
       fg_primeiroacesso: 'Flag do primeiro acesso.',
    },
 
+   data_governance_column: [
+    {column:'nm_estabecimento', name:'pii', value:'true'},
+    {column:'nu_docestabelecimento', name:'pii', value:'true'},
+    {column:'cd_contadigital', name:'pii', value:'true'}
+],
+
    policy_tags: {
       nm_estabecimento: 'pii',
       nu_docestabelecimento: 'pii',
