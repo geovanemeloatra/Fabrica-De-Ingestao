@@ -24,6 +24,10 @@ let params = {
         , {name: "data_retention", value: "Not Applicable"}
     ],
 
+    data_governance_column: [
+   
+],
+
      policy_tags: {
 
       },
