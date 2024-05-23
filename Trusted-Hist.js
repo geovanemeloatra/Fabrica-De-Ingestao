@@ -13,6 +13,10 @@ let params = {
     pre_ops_declaration: `DECLARE P_MAX_TIMESTAMP TIMESTAMP DEFAULT (SELECT COALESCE(MAX(ingestion_timestamp), TIMESTAMP('1900-01-01')) FROM \`${dataform.projectConfig.defaultDatabase}.trusted.tsys_servicefees_hist\`);`,
     columns: ["*"] ,
 
+    data_governance_column: [
+
+],
+
     policy_tags: {
     },
     
