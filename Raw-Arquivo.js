@@ -22,6 +22,10 @@ let parameters = {
     , {name: "load_type", value: "Incremental"}
     , {name: "data_retention", value: "Not Applicable"}
   ],
+
+data_governance_column: [
+    {column:'accountnumber', name:'pii', value:'true'}
+],
   
   policy_tags: {
     accountnumber: 'pii'
