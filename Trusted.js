@@ -3,6 +3,7 @@ let params = {
     source_dataset: 'raw',
     dataset: "trusted",
     object_name: 'tsys_dispcases',
+    object_description: 'Tabela contém dados do caso de disputa criado, incluindo dados de entrada do operador, dados da transação de início e posterior resolução.',
     type: "upsert",
     key_columns: ["institution_id","serno"],
     watermark_columns: ["ingestion_ref_date"],
@@ -55,7 +56,7 @@ let params = {
       phasedate: 'A data da fase atual do caso de disputa. (The date of the current dispute case phase)',
       cpd:'Data Central de Processamento (CPD) da transação disputada.'
     },
-    object_description: 'Tabela contém dados do caso de disputa criado, incluindo dados de entrada do operador, dados da transação de início e posterior resolução.',
+    
     data_governance: [
       {name: "schedule_name", value: "tsys_dispcases"},
       {name: "data_classification", value: "Internal"},
@@ -66,14 +67,14 @@ let params = {
       {name: "data_retention", value: "Not Applicable"}],
 
     data_governance_column: [
-    {column:'cardholdername', name:'pii', value:'true'},
-    {column:'cardnumber', name:'pii', value:'true'}
-],
-
-    policy_tags:  {
+      {column:'cardholdername', name:'pii', value:'true'},
+      {column:'cardnumber', name:'pii', value:'true'}
+    ],
+    
+    policy_tags: {
       cardholdername: 'pii',
       cardnumber: 'pii',
-  }
+    }
 }
 
 csf_modules.deduplication.dedup(params)
