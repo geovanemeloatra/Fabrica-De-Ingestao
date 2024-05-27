@@ -12,7 +12,7 @@ let params = {
     cluster_by: ["ingestion_ref_date"],
     developer: ["edvandro_clayton_barros_leite_ext@carrefour.com", "guilherme_barros_alves_pereira_ext@carrefour.com"],
     pec: 3,
-    custom_tags:['PIT0003'],
+    custom_tags: ['PIT0003'],
     pec_obs: 'PIT 0003 - CYBER',
     columns: [
           'dh_ref'

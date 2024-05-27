@@ -8,7 +8,7 @@ let params = {
   unique_key: ["acct_grp", "level1", "test", "sequence", "ingestion_ref_date", "serial"],
   pec: 3,
   pec_obs: 'PIT 0003 - CYBER',
-  custom_tags:['PIT0003'],
+  custom_tags: ['PIT0003'],
   developer: ['guilherme_barros_alves_pereira_ext@carrefour.com'],
   pre_ops_declaration: `DECLARE P_MAX_TIMESTAMP TIMESTAMP DEFAULT (SELECT COALESCE(MAX(ingestion_timestamp), TIMESTAMP('1900-01-01')) FROM \`${dataform.projectConfig.defaultDatabase}.trusted.cybr_lbl_dectbl1_hist\`);`,
   columns: ["*"],
