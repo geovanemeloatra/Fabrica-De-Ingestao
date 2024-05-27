@@ -83,7 +83,7 @@ csf_modules.transformation.create_new_object(params).query (ctx => `
 WITH LISTA_DE_CHAVES_CARREGADAS AS (
 
     SELECT DISTINCT serno
-    FROM ${ctx.ref("raw", "cybr_lbl_dectbl1_clean")}
+    FROM ${ctx.ref("raw", "cybr_lbl_dectbl1")}
     ${ctx.when(ctx.incremental(), `WHERE ingestion_timestamp > P_MAX_TIMESTAMP`)}
 
 )
@@ -95,7 +95,7 @@ SELECT
   , LEAD(PARSE_DATE('%Y%m%d', CAST(ingestion_ref_date AS STRING))) OVER(PARTITION BY serno ORDER BY ingestion_ref_date, ingestion_timestamp) AS dat_fim_vigencia
   , TB.*
 FROM
-  ${ctx.ref("raw", "cybr_lbl_dectbl1_clean")} AS TB
+  ${ctx.ref("raw", "cybr_lbl_dectbl1")} AS TB
 WHERE
   EXISTS (SELECT 1 FROM LISTA_DE_CHAVES_CARREGADAS AS LISTA WHERE LISTA.serno = TB.serno)
 
