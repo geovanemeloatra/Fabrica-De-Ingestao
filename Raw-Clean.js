@@ -25,12 +25,11 @@ let params = {
     ],
 
     data_governance_column: [
-   
-],
-
-     policy_tags: {
-
-      },
+        {column:'accountnumber', name:'pii', value:'true'}
+    ],
+    policy_tags: {
+        accountnumber: 'pii'
+    },
 
     columns_description : {
           type: 'O tipo de registro: * I: Registro recém inserido, válido apenas quando incremental. *  U: Registro atualizado, válido apenas quando incremental. * D: Registro excluído, válido apenas quando incremental. Para registros excluídos, apenas o número de série da entidade será devolvido. * F: Solicitação de exportação completa'
@@ -74,7 +73,6 @@ let params = {
         , instalmenttypes: 'Contribuição de diferentes tipos de parcela para base de taxas. Os valores atualmente suportados são: * 30: tipo de parcela INTRA. * 71: tipo de parcela EXTRA'
         , min_max_amount_currency: "Se esta coluna for definida, o montante mínimo ou máximo será calculado com esta moeda. Se não for definido, o cálculo usará a moeda na coluna 'Currency'"
     }
-
 }
 
 csf_modules.transformation.create_new_object(params).query (ctx => `

@@ -14,10 +14,11 @@ let params = {
     columns: ["*"] ,
 
     data_governance_column: [
-
-],
-
+      {column:'accountnumber', name:'pii', value:'true'}
+    ],
+    
     policy_tags: {
+      accountnumber: 'pii'
     },
     
     data_governance: [

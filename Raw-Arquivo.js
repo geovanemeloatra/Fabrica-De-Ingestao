@@ -22,14 +22,14 @@ let parameters = {
     , {name: "data_retention", value: "Not Applicable"}
   ],
 
-data_governance_column: [
+  data_governance_column: [
     {column:'accountnumber', name:'pii', value:'true'}
-],
+  ],
   
   policy_tags: {
     accountnumber: 'pii'
-    
   },
+
   columns: [
       {name: 'type', type: 'string'}
     , {name: 'institution_id', type: 'numeric'}

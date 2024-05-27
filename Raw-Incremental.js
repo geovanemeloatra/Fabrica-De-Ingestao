@@ -52,9 +52,9 @@ let parameters = {
    },
 
    data_governance_column: [
-    {column:'nm_estabecimento', name:'pii', value:'true'},
-    {column:'nu_docestabelecimento', name:'pii', value:'true'},
-    {column:'cd_contadigital', name:'pii', value:'true'}
+      {column:'nm_estabecimento', name:'pii', value:'true'},
+      {column:'nu_docestabelecimento', name:'pii', value:'true'},
+      {column:'cd_contadigital', name:'pii', value:'true'}
 ],
 
    policy_tags: {

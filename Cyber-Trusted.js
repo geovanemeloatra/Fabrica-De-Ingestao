@@ -39,6 +39,14 @@ let params = {
         , 'ingestion_proc_datetime'
         , 'ingestion_ref_date'
     ],
+
+    data_governance_column: [
+        {column:'accountnumber', name:'pii', value:'true'}
+    ],
+      
+    policy_tags: {
+        accountnumber: 'pii'
+    },
   
     columns_description : {
         dh_ref: 'Data em que a alteracao do registro ocorreu no Cyber',
@@ -68,10 +76,10 @@ let params = {
         {name: "clustered_table", value: "true"},
         {name: "update_frequency", value: "Daily"},
         {name: "load_type", value: "Incremental"},
-        {name: "data_retention", value: "Not Applicable"}],
-    }
+        {name: "data_retention", value: "Not Applicable"}]
+}
   
   
-  csf_modules.deduplication.dedup(params)
+csf_modules.deduplication.dedup(params)
   
   
