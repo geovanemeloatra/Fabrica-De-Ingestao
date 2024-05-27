@@ -31,7 +31,7 @@ let params = {
         accountnumber: 'pii'
     },
 
-    columns_description : {
+    columns_description: {
           type: 'O tipo de registro: * I: Registro recém inserido, válido apenas quando incremental. *  U: Registro atualizado, válido apenas quando incremental. * D: Registro excluído, válido apenas quando incremental. Para registros excluídos, apenas o número de série da entidade será devolvido. * F: Solicitação de exportação completa'
         , institution_id: 'ID da instituição para implementar várias instituições'
         , serno: 'Número de série permanente exclusivo '

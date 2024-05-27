@@ -32,7 +32,7 @@ let parameters = {
       {name: 'fg_primeiroacesso', type: 'BOOL'},
    ],
 
-   columns_description : {
+   columns_description: {
       id_estabelecimento: 'Identificador da tabela de estabelecimento.',
       nm_estabecimento: 'Nome estabelecimento.',
       nu_docestabelecimento: 'Número do documento do estabelecimento.',

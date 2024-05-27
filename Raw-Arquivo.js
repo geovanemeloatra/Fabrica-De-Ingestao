@@ -51,7 +51,7 @@ let parameters = {
     , {name: 'portfolio', type: 'numeric'}
   ],
 
-  columns_description : {
+  columns_description: {
       type:'The type of record'
     , institution_id:'Institution ID for implementing multiple institutions'
     , serno:'Unique permanent serial number'

@@ -31,7 +31,7 @@ let params = {
       {name: "data_retention", value: "Not Applicable"}
   ],
 
-  columns_description : {
+  columns_description: {
       dh_ref: 'Data em que a alteracao do registro ocorreu no Cyber',
       in_oper: 'Indicador da alteracao realizada no registro ("I" = Inclusao, "A" = Alteracao, "E" = Exclusao)',
       serial: 'Ordem que deve ser seguida para gravar os dados na ods.',
