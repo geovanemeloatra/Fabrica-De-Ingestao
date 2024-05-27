@@ -2,23 +2,23 @@ let params = {
     type: "incremental",
     dataset: "trusted",
     object_name: 'cybr_lbl_dectbl1_hist',
-    object_description:"Tabela de dados transacionais do sistema TSYS que representa as Taxas de Serviço",
+    object_description: "Arvore de decisao para qualificar creditos.",
     partition_by: {column: 'ingestion_timestamp', type: 'timestamp', granularity: 'day'},
     cluster_by: ["ingestion_ref_date"],
-    unique_key: ["serno", "ingestion_ref_date"],
-    pec: 2,
-    pec_obs: 'PIT 0002 - Tsys',
-    custom_tags:['PIT0002'],
-    developer: ["matheus_felippe_silva_ext@carrefour.com"],
+    unique_key: ["acct_grp", "level1", "test", "sequence", "ingestion_ref_date", "serial"],
+    pec: 3,
+    pec_obs: 'PIT 0003 - CYBER',
+    custom_tags: ['PIT0003'],
+    developer: ['guilherme_barros_alves_pereira_ext@carrefour.com'],
     pre_ops_declaration: `DECLARE P_MAX_TIMESTAMP TIMESTAMP DEFAULT (SELECT COALESCE(MAX(ingestion_timestamp), TIMESTAMP('1900-01-01')) FROM \`${dataform.projectConfig.defaultDatabase}.trusted.cybr_lbl_dectbl1_hist\`);`,
     columns: ["*"] ,
 
     data_governance_column: [
-      {column:'accountnumber', name:'pii', value:'true'}
+        {column:'accountnumber', name:'pii', value:'true'}
     ],
     
     policy_tags: {
-      accountnumber: 'pii'
+        accountnumber: 'pii'
     },
     
     data_governance: [
@@ -32,48 +32,26 @@ let params = {
     ],
 
     columns_description: {
-          type: 'O tipo de registro: * I: Registro recém inserido, válido apenas quando incremental. *  U: Registro atualizado, válido apenas quando incremental. * D: Registro excluído, válido apenas quando incremental. Para registros excluídos, apenas o número de série da entidade será devolvido. * F: Solicitação de exportação completa'
-        , institution_id: 'ID da instituição para implementar várias instituições'
-        , serno: 'Número de série permanente exclusivo '
-        , entity_indicator: 'Flag que indica a que entidade se aplica a taxa: * C: Cartões. * M: Localização do adquirente. * T: Terminal do adquirente. * S: Fatura do emissor. * A: Conta do emissor. * F: Conta do adquirente. * E: Fatura do adquirente. * 1: Transação do adquirente. * 0: Transação do emissor'
-        , profile_serno: 'Número de Série do Perfil da Taxa de Serviço '
-        , service_type: 'Tipo de serviço para o qual se define esta taxa'
-        , service_reason: 'Motivo ou ação do serviço'
-        , transaction_type: 'Texto para o código de motivo da transação da taxa'
-        , description: 'Descrição'
-        , sign: 'Sinal de postagem. Determina como a taxa é postada: * S: Mesmo sinal do saldo da conta. * O: Sinal oposto do saldo da conta. * C: Sempre crédito. * D: Sempre débito'
-        , flat_amount: 'Montante fixo de comissão por transação'
-        , currency: 'Moeda da taxa'
-        , percent_amount: 'Porcentagem de comissão por transação'
-        , percent_of_what: 'Montante pelo qual os juros são calculados'
-        , combination: 'Combinação fixa/percentual. Determina como as taxas são calculadas, se houver um montante fixo e uma porcentagem: * -1: Use o montante que for menor. * 0: Adicione os dois montantes para calcular a taxa. * 1: Use o montante que for maior'
-        , percent_applies_to: 'Determina qual entidade é usada para calcular a porcentagem. Valores válidos: * C: Cartão. * B: Grupo de Cobrança. * D: Domínio. * U: Cliente'
-        , logversion: 'Número de vezes que se modifica um detalhe'
-        , feebillingoption: 'Opção de cobrança'
-        , periodicfeq: 'Frequência'
-        , capitalize: 'Indica se os juros são capitalizados'
-        , min_amount: 'Montante mínimo da taxa de serviço'
-        , max_amount: 'Montante máximo da taxa de serviço'
-        , suppressfee: 'Determina se deve impedir que essas taxas sejam cobradas na conta para: * 1: Suprimir no saldo zero. * 2: Suprimir no saldo credor. * 3: Ambos. * 4: Suprimir se o saldo e o montante do volume de serviço forem cobertos pelo pagamento do ciclo atual. * 0: Sem supressão'
-        , instalmentplanshortcode: "Se a taxa for postada como parcela (ou seja, o valor do campo taxa da parcela for '1' ou '2'), o plano de parcelamento com este código curto será cobrado"
-        , instalfee: 'Determina se as taxas devem ser postadas em parcelas. Valores: * 0: Nunca. * 1: Opcional. * 2: Sempre'
-        , excludecurrentactivitybalance: 'Determina se a atividade atual deve ser excluída do montante do volume: * 0/Vazio - Incluir. * 1 - Excluir'
-        , excludebilledbalance: 'Determina se os saldos consolidados devem ser excluídos do montante do volume: * 0/Vazio - Incluir. * 1 - Excluir'
-        , usebalanceamountoption: 'Determina a opção de montante do saldo: * 0/Vazio - Saldo Pendente. * 1 - Saldo na Data de Vencimento. * 2 - Saldo Original'
-        , curbalminusprevcyclebal: 'Determina se o montante do volume é a diferença entre o saldo do ciclo atual e o saldo de fechamento do ciclo anterior. * 0/Vazio - Incluir. * 1 - Excluir'
-        , taxflag: 'Flag que indica se a taxa é um imposto'
-        , countdaysfrom: 'Conte os dias a partir de: * Q - Data de vencimento da normalização'
-        , countdaysto: 'Conte os dias para: * S - Data da fatura. * D - Data de vencimento'
-        , serviceschedulerplanshortcode: 'O código curto para o plano do agendador de serviço'
-        , trxncurrency: 'Moeda em que este serviço será postado'
-        , refundable: 'Determina se a taxa de serviço pode ser reembolsada ou não. Valores válidos: * 0 = não é reembolsável. * 1 = é reembolsável'
-        , tieredflag: 'Determina se a taxa de serviço é uma taxa escalonada ou não. Valores válidos: * 0/vazio: taxa normal, não escalonada. * 1: taxa escalonada'
-        , percentratedays: 'Número de dias em um ano para fins de cálculo do percentual da taxa como taxa diária. Geralmente 360 ou 365'
-        , addinstoutsrevolvingamount: 'Suporta a adição de montante rotativo pendente de parcela ao ADB ao calcular taxas'
-        , instalmenttypes: 'Contribuição de diferentes tipos de parcela para base de taxas. Os valores atualmente suportados são: * 30: tipo de parcela INTRA. * 71: tipo de parcela EXTRA'
-        , min_max_amount_currency: "Se esta coluna for definida, o montante mínimo ou máximo será calculado com esta moeda. Se não for definido, o cálculo usará a moeda na coluna 'Currency'"
-    }
-
+        dh_ref: 'Data em que a alteracao do registro ocorreu no Cyber',
+        in_oper: 'Indicador da alteracao realizada no registro ("I" = Inclusao, "A" = Alteracao, "E" = Exclusao)',
+        serial: 'Ordem que deve ser seguida para gravar os dados na ods.',
+        acct_grp: 'Codigo do Grupo da Conta Parte da "Primary Key" (logica) da tabela.',
+        level1: 'Nivel para esta prova. Parte da "Primary Key" (logica) da tabela.',
+        test: 'Numero de provas dentro de um nivel. Parte da "Primary Key" (logica) da tabela.',
+        sequence: 'Numero sequencial dentro de uma prova. Parte da "Primary Key" (logica) da tabela.',
+        next_level: 'Nivel ao que se avanca se a prova e verdadeiro.',
+        comment1: 'Comentario da prova (so para sequence = 0).',
+        op: 'Operador de comparacao (so para sequence = 1 a 999). Os operadores validos sao: .eo. Igual a dv1 ou igual a dv2. Exemplo: c = dv1 ou c = dv2. .eq. Igual a. Exemplo: c = dv1. .ge. Maior ou igual a. Exemplo: c >= dv1. .gt. Maior a. Exemplo: c > dv1. .le. Menor ou igual a. Exemplo: c <= dv1. .lt. Menor a. Exemplo: c < dv1. .ne. Diferente de. Exemplo: c!= dv1. .no. Diferente a e diferente a. Exemplo: c!= dv1 e c!= dv2. .os. Menor a ou Maior a. Exemplo: c < dv1 ou c > dv2. .we. Maior ou igual a e Menor ou igual a (faixa de valores). Ex.: c >= dv1 e c <= dv2.',
+        field_1: 'Campo mestre que se compara usando o operador.',
+        field_2: 'Um dos campos a comparar.',
+        field_2_flag: 'Indica se o dado 2 e um campo ou um valor.',
+        field_3: 'Um dos campos a comparar.',
+        field_3_flag: 'Indica se o dado 3 e um campo ou um valor.',
+        or_flag: 'Bandeira usada para agrupar varias comparacoes. So tem dois possiveis valores: branco = indica que nao se agrupam as comparacoes. 0 = indica que as comparacoes se agrupam.',
+        num_return: 'Numero de valores regressados (so para sequence = 0).',
+        nxt_return: 'RESERVADO.',
+        queue: 'Valores de regresso (para sequence = 10000 a 32767).'
+    },
 }
 
 csf_modules.transformation.create_new_object(params).query (ctx => `
@@ -82,7 +60,7 @@ csf_modules.transformation.create_new_object(params).query (ctx => `
 
 WITH LISTA_DE_CHAVES_CARREGADAS AS (
 
-    SELECT DISTINCT serno
+    SELECT DISTINCT acct_grp
     FROM ${ctx.ref("raw", "cybr_lbl_dectbl1")}
     ${ctx.when(ctx.incremental(), `WHERE ingestion_timestamp > P_MAX_TIMESTAMP`)}
 
@@ -91,12 +69,34 @@ WITH LISTA_DE_CHAVES_CARREGADAS AS (
 -- RETORNO COM TODAS AS LINHAS A SEREM PROCESSADAS (INCLUINDO NOVOS REGISTROS E REGISTROS COM VIGÊNCIA A SER FECHADA)
 
 SELECT
-    PARSE_DATE('%Y%m%d', CAST(ingestion_ref_date AS STRING)) AS dat_inicio_vigencia
-  , LEAD(PARSE_DATE('%Y%m%d', CAST(ingestion_ref_date AS STRING))) OVER(PARTITION BY serno ORDER BY ingestion_ref_date, ingestion_timestamp) AS dat_fim_vigencia
-  , TB.*
+      PARSE_DATE('%Y%m%d', CAST(ingestion_ref_date AS STRING)) AS dat_inicio_vigencia
+    , LEAD(PARSE_DATE('%Y%m%d', CAST(ingestion_ref_date AS STRING))) OVER(PARTITION BY acct_grp ORDER BY ingestion_ref_date, ingestion_timestamp) AS dat_fim_vigencia
+    , dh_ref
+    , CASE WHEN TRIM(in_oper) = "" THEN NULL ELSE in_oper END in_oper
+    , serial
+    , CASE WHEN TRIM(acct_grp) = "" THEN NULL ELSE acct_grp END acct_grp
+    , level1
+    , test
+    , sequence
+    , next_level
+    , CASE WHEN TRIM(comment1) = "" THEN NULL ELSE comment1 END comment1
+    , CASE WHEN TRIM(op) = "" THEN NULL ELSE op END op
+    , CASE WHEN TRIM(field_1) = "" THEN NULL ELSE field_1 END field_1
+    , CASE WHEN TRIM(field_2) = "" THEN NULL ELSE field_2 END field_2
+    , CASE WHEN TRIM(field_2_flag) = "" THEN NULL ELSE field_2_flag END field_2_flag
+    , CASE WHEN TRIM(field_3) = "" THEN NULL ELSE field_3 END field_3
+    , CASE WHEN TRIM(field_3_flag) = "" THEN NULL ELSE field_3_flag END field_3_flag
+    , CASE WHEN TRIM(or_flag) = "" THEN NULL ELSE or_flag END or_flag
+    , num_return
+    , nxt_return
+    , CASE WHEN TRIM(queue) = "" THEN NULL ELSE queue END queue
+    , ingestion_timestamp
+    , ingestion_source_file
+    , ingestion_proc_datetime
+    , ingestion_ref_date
 FROM
   ${ctx.ref("raw", "cybr_lbl_dectbl1")} AS TB
 WHERE
-  EXISTS (SELECT 1 FROM LISTA_DE_CHAVES_CARREGADAS AS LISTA WHERE LISTA.serno = TB.serno)
+  EXISTS (SELECT 1 FROM LISTA_DE_CHAVES_CARREGADAS AS LISTA WHERE LISTA.acct_grp = TB.acct_grp)
 
 `);
