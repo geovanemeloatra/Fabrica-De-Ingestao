@@ -1,54 +1,51 @@
-let params = {
-    source_object : "cybr_lbl_dectbl1",
-    source_dataset: "raw",
-    dataset: "trusted",
-    object_name: "cybr_lbl_dectbl1",
-    object_description: "Arvore de decisao para qualificar creditos.",
-    type: "upsert",
-    key_columns: ["acct_grp", "level1", "test", "sequence"],
-    watermark_columns: ["ingestion_ref_date", "serial"],
-    incremental_watermark: "ingestion_timestamp",
-    partition_by: {column: "ingestion_timestamp", type: "timestamp", granularity: "day"},
-    cluster_by: ["ingestion_ref_date"],
-    developer: ["edvandro_clayton_barros_leite_ext@carrefour.com", "guilherme_barros_alves_pereira_ext@carrefour.com"],
+let parameters = {
+    format: 'CSV',
+    table_name: 'cybr_lbl_dectbl1',
+    table_description: "Arvore de decisao para qualificar creditos.",
+    developer: ['paulo_eduardo_piccoli_ext@carrefour.com', 'guilherme_barros_alves_pereira_ext@carrefour.com'],
     pec: 3,
     custom_tags: ['PIT0003'],
     pec_obs: 'PIT 0003 - CYBER',
-    columns: [
-          'dh_ref'
-        , 'CASE WHEN TRIM(in_oper) = "" THEN NULL ELSE in_oper END in_oper'
-        , 'serial'
-        , 'CASE WHEN TRIM(acct_grp) = "" THEN NULL ELSE acct_grp END acct_grp'
-        , 'level1'
-        , 'test'
-        , 'sequence'
-        , 'next_level'
-        , 'CASE WHEN TRIM(comment1) = "" THEN NULL ELSE comment1 END comment1'
-        , 'CASE WHEN TRIM(op) = "" THEN NULL ELSE op END op'
-        , 'CASE WHEN TRIM(field_1) = "" THEN NULL ELSE field_1 END field_1'
-        , 'CASE WHEN TRIM(field_2) = "" THEN NULL ELSE field_2 END field_2'
-        , 'CASE WHEN TRIM(field_2_flag) = "" THEN NULL ELSE field_2_flag END field_2_flag'
-        , 'CASE WHEN TRIM(field_3) = "" THEN NULL ELSE field_3 END field_3'
-        , 'CASE WHEN TRIM(field_3_flag) = "" THEN NULL ELSE field_3_flag END field_3_flag'
-        , 'CASE WHEN TRIM(or_flag) = "" THEN NULL ELSE or_flag END or_flag'
-        , 'num_return'
-        , 'nxt_return'
-        , 'CASE WHEN TRIM(queue) = "" THEN NULL ELSE queue END queue'
-        , 'ingestion_timestamp'
-        , 'ingestion_source_file'
-        , 'ingestion_proc_datetime'
-        , 'ingestion_ref_date'
-    ],
+    field_delimiter: '|',
+    skip_leading_rows: 1,
+    allow_jagged_rows: true,
+	ignore_unknown_values: true,
+    partition_by: {column: 'ingestion_timestamp', type: 'timestamp', granularity: 'day'},
+    cluster_by: ["ingestion_ref_date"],
+    declare_source_table: false,
 
-    data_governance_column: [
-        {column:'accountnumber', name:'pii', value:'true'}
-    ],
-      
-    policy_tags: {
-        accountnumber: 'pii'
-    },
-  
-    columns_description: {
+    data_governance: [
+		{name: "schedule_name", value: "cybr_lbl_dectbl1"},
+		{name: "data_classification", value: "Internal"},
+		{name: "partitioned_table", value: "true"},
+		{name: "clustered_table", value: "true"},
+		{name: "update_frequency", value: "Daily"},
+		{name: "load_type", value: "Incremental"},
+		{name: "data_retention", value: "Not Applicable"}],
+    
+    columns: [ 
+        {name: 'dh_ref', type: 'NUMERIC'},                                     
+        {name: 'in_oper', type: 'STRING'},   
+        {name: 'serial', type: 'NUMERIC'},    
+        {name: 'acct_grp', type: 'STRING'},    
+        {name: 'level1', type: 'NUMERIC'},   
+        {name: 'test', type: 'NUMERIC'},    
+        {name: 'sequence', type: 'NUMERIC'},    
+        {name: 'next_level', type: 'NUMERIC'},   
+        {name: 'comment1', type: 'STRING'},   
+        {name: 'op', type: 'STRING'},    
+        {name: 'field_1', type: 'STRING'},   
+        {name: 'field_2', type: 'STRING'},   
+        {name: 'field_2_flag', type: 'STRING'},    
+        {name: 'field_3', type: 'STRING'},   
+        {name: 'field_3_flag', type: 'STRING'},    
+        {name: 'or_flag', type: 'STRING'},   
+        {name: 'num_return', type: 'NUMERIC'},    
+        {name: 'nxt_return', type: 'NUMERIC'},   
+        {name: 'queue', type: 'STRING'},    
+    ],  
+
+    columns_description : {
         dh_ref: 'Data em que a alteracao do registro ocorreu no Cyber',
         in_oper: 'Indicador da alteracao realizada no registro ("I" = Inclusao, "A" = Alteracao, "E" = Exclusao)',
         serial: 'Ordem que deve ser seguida para gravar os dados na ods.',
@@ -69,17 +66,6 @@ let params = {
         nxt_return: 'RESERVADO.',
         queue: 'Valores de regresso (para sequence = 10000 a 32767).'
     },
-    data_governance: [
-        {name: "schedule_name", value: "cybr_lbl_dectbl1"},
-        {name: "data_classification", value: "Internal"},
-        {name: "partitioned_table", value: "true"},
-        {name: "clustered_table", value: "true"},
-        {name: "update_frequency", value: "Daily"},
-        {name: "load_type", value: "Incremental"},
-        {name: "data_retention", value: "Not Applicable"}]
+    
 }
-  
-  
-csf_modules.deduplication.dedup(params)
-  
-  
+csf_modules.ingestion.ingest(parameters)	
