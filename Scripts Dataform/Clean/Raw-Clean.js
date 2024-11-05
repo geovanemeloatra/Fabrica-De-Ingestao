@@ -1,5 +1,4 @@
 let params = {
-
     type: 'incremental',
     dataset: 'raw',
     object_name: 'tsys_servicefees_clean',

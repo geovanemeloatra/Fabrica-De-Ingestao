@@ -1,0 +1,86 @@
+# Desenvolvido pelo time da Fábrica de Ingestão ATRA Consultoria.
+# [MSSQL] Processo para leitura Full dos dados da tabela transacional
+
+- init:
+    assign:
+      - project_id: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+      - location: "southamerica-east1"
+      - job_name: "p0070i-ewally-conta-digital-extrato-tb-tipo-mcc-exec-crt" # Parâmetro do processo
+      - temp_location: ${"gs://dataflow-staging-" + location + "-1080416849631/tmp"}
+      - template_path: ${"gs://dataflow-templates-" + location + "/latest/flex/SQLServer_to_BigQuery"}
+      - service_account: "service-1080416849631-dataflow@csf-core-data-crt.iam.gserviceaccount.com"
+      - username_token_id: "MSSQL_CRT_Username" # Parâmetro do processo
+      - password_token_id: "MSSQL_SQL005_CRT_Psw" # Parâmetro do processo
+      - connection_token_id: "MSSQL_CRT_SQL005_ConnectionString" # Parâmetro do processo
+      - KMSEncryptString: "projects/csf-core-data-crt/locations/global/keyRings/MSSQL_Ring/cryptoKeys/MSSQL_Key"
+      - databaseName: "MS_ContaDigital_Extrato" # Parâmetro do processo
+      - connectionPropertiesString: ${"database=" + databaseName + ";encrypt=true;trustServerCertificate=true"}
+      - outputTableName: "ewally_conta_digital_extrato_tb_tipo_mcc" # Parâmetro do processo
+      - preSQLTruncate: ${"TRUNCATE TABLE " + project_id + ".staging." + outputTableName}
+      - querySelect: "SELECT ID_TIPOMCC, CD_MCC, DS_TIPOMCC, DS_ICONE" # Parâmetro do processo
+      - queryFrom: " FROM TB_TIPO_MCC WITH (NOLOCK)" # Parâmetro do processo
+      - outputTableString: ${project_id + ":staging." + outputTableName}
+
+- get_username_secret:
+        call: googleapis.secretmanager.v1.projects.secrets.versions.accessString
+        args:
+            secret_id: ${username_token_id}
+            project_id: ${project_id}
+        result: user_connection
+
+- get_password_secret:
+        call: googleapis.secretmanager.v1.projects.secrets.versions.accessString
+        args:
+            secret_id: ${password_token_id}
+            project_id: ${project_id}
+        result: pass_connection
+
+- get_connection_secret:
+        call: googleapis.secretmanager.v1.projects.secrets.versions.accessString
+        args:
+            secret_id: ${connection_token_id}
+            project_id: ${project_id}
+        result: connect_connection
+
+- intermediate:
+    assign:
+      - queryString: ${querySelect + queryFrom}
+
+- truncate_output_table:
+        call: googleapis.bigquery.v2.jobs.query
+        args:
+            projectId: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+            body:
+                useLegacySql: false
+                useQueryCache: false
+                timeoutMs: 30000
+                query: ${preSQLTruncate}
+
+- create_job:
+    call: googleapis.dataflow.v1b3.projects.locations.flexTemplates.launch
+    args:
+      projectId: ${project_id}
+      location: ${location}
+      body:
+        launchParameter:
+          jobName: ${job_name + "-" + text.substring(time.format(sys.now()), 0, 10)}
+          parameters:
+            useStorageWriteApi: "true"
+            useColumnAlias: "true"
+            connectionURL: ${connect_connection}
+            query: ${queryString}
+            outputTable: ${outputTableString}
+            bigQueryLoadingTemporaryDirectory: "gs://csf-core-data-crt/teste_dataflow_tmp/"
+            username: ${user_connection}
+            password: ${pass_connection}
+            KMSEncryptionKey: ${KMSEncryptString}
+            connectionProperties: ${connectionPropertiesString}
+          environment:
+            tempLocation: ${temp_location}
+            serviceAccountEmail: ${service_account}
+            subnetwork: "https://www.googleapis.com/compute/v1/projects/csf-net-sharedvpc-crt-1/regions/southamerica-east1/subnetworks/csf-subnet-crt-core-data-resources-sa-east1"
+            network: "csf-net-sharedvpc-crt-1"
+          containerSpecGcsPath: ${template_path}
+
+- the_end:
+    return: "SUCCESS"

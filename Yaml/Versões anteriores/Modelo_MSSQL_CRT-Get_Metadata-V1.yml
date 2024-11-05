@@ -1,0 +1,69 @@
+# Desenvolvido pelo time da Fábrica de Ingestão ATRA Consultoria.
+# [MSSQL] Processo de captura dos metadados da tabela transacional
+
+- init:
+    assign:
+      - project_id: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+      - location: "southamerica-east1"
+      - job_name: "ewally-contadigital-tb-status-cartao-pre-pago-get-metadata-crt" # Parâmetro do processo
+      - temp_location: ${"gs://dataflow-staging-" + location + "-1080416849631/tmp"}
+      - template_path: ${"gs://dataflow-templates-" + location + "/latest/flex/SQLServer_to_BigQuery"}
+      - service_account: "service-1080416849631-dataflow@csf-core-data-crt.iam.gserviceaccount.com"
+      - username_token_id: "MSSQL_CRT_Username" # Parâmetro do processo
+      - password_token_id: "MSSQL_SQL005_CRT_Psw" # Parâmetro do processo
+      - connection_token_id: "MSSQL_CRT_SQL005_ConnectionString" # Parâmetro do processo
+      - KMSEncryptString: "projects/csf-core-data-crt/locations/global/keyRings/MSSQL_Ring/cryptoKeys/MSSQL_Key"
+      - databaseName: "MS_ContaDigital" # Parâmetro do processo
+      - connectionPropertiesString: ${"database=" + databaseName + ";encrypt=true;trustServerCertificate=true"}
+      - queryString: "SELECT CONCAT(META.TABLE_CATALOG, '.', META.TABLE_SCHEMA, '.', META.TABLE_NAME) AS TABELA, TABLE_DESC.value AS DESCRICAO_TABELA, META.COLUMN_NAME AS COLUNA, COLUMN_DESC.value AS DESCRICAO_COLUNA, META.DATA_TYPE AS TIPO, CASE WHEN META.DATETIME_PRECISION IS NOT NULL THEN CONVERT(VARCHAR, META.DATETIME_PRECISION) WHEN META.NUMERIC_PRECISION IS NOT NULL THEN CONCAT(META.NUMERIC_PRECISION, ',', META.NUMERIC_SCALE) ELSE CONVERT(VARCHAR, META.CHARACTER_MAXIMUM_LENGTH) END AS TAMANHO, META.COLUMN_DEFAULT AS VALOR_DEFAULT, META.IS_NULLABLE AS PERMITE_NULL, META.ORDINAL_POSITION AS POSICAO_COLUNA, CAST(IND.is_unique AS VARCHAR) AS DADO_UNICO, CONS.CONSTRAINT_TYPE AS TIPO_CONSTRAINT, CONS.CONSTRAINT_NAME AS NOME_CONSTRAINT, IND.name AS NOME_INDICE, IND_COLUMNS.key_ordinal AS POSICAO_INDICE, DATA.QTD_LINHAS, DATA.MIN_DATE_1, DATA.MAX_DATE_1, DATA.MIN_DATE_2, DATA.MAX_DATE_2, CONVERT(VARCHAR, GETDATE(), 120) AS DATAHORA_ATUAL FROM INFORMATION_SCHEMA.COLUMNS AS META LEFT JOIN sys.extended_properties AS TABLE_DESC ON TABLE_DESC.major_id = OBJECT_ID(META.TABLE_SCHEMA + '.' + META.TABLE_NAME) AND TABLE_DESC.minor_id = 0 AND TABLE_DESC.name = 'MS_Description' LEFT JOIN sys.extended_properties AS COLUMN_DESC ON COLUMN_DESC.major_id = OBJECT_ID(META.TABLE_SCHEMA + '.' + META.TABLE_NAME) AND COLUMN_DESC.minor_id = COLUMNPROPERTY(OBJECT_ID(META.TABLE_SCHEMA + '.' + META.TABLE_NAME), META.COLUMN_NAME, 'ColumnId') AND COLUMN_DESC.name = 'MS_Description' LEFT JOIN (SELECT KCU.TABLE_SCHEMA, KCU.TABLE_NAME, KCU.COLUMN_NAME, TC.CONSTRAINT_TYPE, TC.CONSTRAINT_NAME FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE KCU JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS TC ON KCU.CONSTRAINT_SCHEMA = TC.CONSTRAINT_SCHEMA AND KCU.CONSTRAINT_NAME = TC.CONSTRAINT_NAME AND KCU.TABLE_NAME = TC.TABLE_NAME) AS CONS ON META.TABLE_SCHEMA = CONS.TABLE_SCHEMA AND META.TABLE_NAME = CONS.TABLE_NAME AND META.COLUMN_NAME = CONS.COLUMN_NAME LEFT JOIN sys.index_columns AS IND_COLUMNS ON IND_COLUMNS.object_id = OBJECT_ID(META.TABLE_SCHEMA + '.' + META.TABLE_NAME) AND IND_COLUMNS.column_id = COLUMNPROPERTY(OBJECT_ID(META.TABLE_SCHEMA + '.' + META.TABLE_NAME), META.COLUMN_NAME, 'ColumnId') LEFT JOIN sys.indexes AS IND ON IND.object_id = IND_COLUMNS.object_id AND IND.index_id = IND_COLUMNS.index_id CROSS JOIN (SELECT COUNT(1) AS QTD_LINHAS, NULL AS MIN_DATE_1, NULL AS MAX_DATE_1, NULL AS MIN_DATE_2, NULL AS MAX_DATE_2 FROM TB_STATUS_CARTAO_PRE_PAGO) AS DATA WHERE META.TABLE_NAME = 'TB_STATUS_CARTAO_PRE_PAGO'" # Parâmetro do processo
+      - outputTableString: ${project_id + ":staging.fabrica_de_ingestao_get_metadata"}
+
+- get_username_secret:
+        call: googleapis.secretmanager.v1.projects.secrets.versions.accessString
+        args:
+            secret_id: ${username_token_id}
+            project_id: ${project_id}
+        result: user_connection
+
+- get_password_secret:
+        call: googleapis.secretmanager.v1.projects.secrets.versions.accessString
+        args:
+            secret_id: ${password_token_id}
+            project_id: ${project_id}
+        result: pass_connection
+
+- get_connection_secret:
+        call: googleapis.secretmanager.v1.projects.secrets.versions.accessString
+        args:
+            secret_id: ${connection_token_id}
+            project_id: ${project_id}
+        result: connect_connection
+
+- create_job:
+    call: googleapis.dataflow.v1b3.projects.locations.flexTemplates.launch
+    args:
+      projectId: ${project_id}
+      location: ${location}
+      body:
+        launchParameter:
+          jobName: ${job_name + "-" + text.substring(time.format(sys.now()), 0, 10)}
+          parameters:
+            useStorageWriteApi: "true"
+            useColumnAlias: "true"
+            connectionURL: ${connect_connection}
+            query: ${queryString}
+            outputTable: ${outputTableString}
+            bigQueryLoadingTemporaryDirectory: "gs://csf-core-data-crt/teste_dataflow_tmp/"
+            username: ${user_connection}
+            password: ${pass_connection}
+            KMSEncryptionKey: ${KMSEncryptString}
+            connectionProperties: ${connectionPropertiesString}
+          environment:
+            tempLocation: ${temp_location}
+            serviceAccountEmail: ${service_account}
+            subnetwork: "https://www.googleapis.com/compute/v1/projects/csf-net-sharedvpc-crt-1/regions/southamerica-east1/subnetworks/csf-subnet-crt-core-data-resources-sa-east1"
+            network: "csf-net-sharedvpc-crt-1"
+          containerSpecGcsPath: ${template_path}
+
+- the_end:
+    return: "SUCCESS"

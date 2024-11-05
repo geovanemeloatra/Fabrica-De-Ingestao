@@ -1,0 +1,106 @@
+# Desenvolvido pelo time da Fábrica de Ingestão ATRA Consultoria.
+# [Oracle] Processo Near Real Time (NRT) para leitura dos dados de tabelas transacionais
+
+- init:
+    assign:
+      - project_id: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+      - location: "southamerica-east1"
+      - job_name: "p0087i-pdr-adesao-exec-inc-prd" # Parâmetro do processo
+      - temp_location: "gs://workflow-core-data-us-east1/workflow-jobs/frente_migracao_dados_historicos_oracle"
+      - template_path: ${"gs://dataflow-templates-" + location + "/latest/flex/Oracle_to_BigQuery"}
+      - service_account: "csf-core-data-workflow@csf-core-data-prd.iam.gserviceaccount.com"
+      - username_token_id: "Oracle_PRD_Username" # Parâmetro do processo
+      - password_token_id: "Oracle_PRD_PR02_Password" # Parâmetro do processo
+      - connection_token_id: "Oracle_PRD_PDR_ConnectionString" # Parâmetro do processo
+      - connectionPropertiesString: "collation_connection=utf8mb4_0900_ai_ci;characterEncoding=UTF-8;defaultRowPrefetch=350000"
+      - KMSEncryptString: "projects/csf-core-data-prd/locations/global/keyRings/oracle_JDBC_ring/cryptoKeys/oracle_JDBC_key"
+      - outputTableName: "pdr_adesao" # Parâmetro do processo
+      - preSQLDatetime: ${"SELECT IFNULL(FORMAT_DATETIME('%Y-%m-%d %H:%M:%S', MAX(dataadesao)), '1900-01-01 00:00:00'), IFNULL(FORMAT_DATETIME('%Y-%m-%d %H:%M:%S', MAX(dataatualizacao)), '1900-01-01 00:00:00') FROM csf-core-data-prd.raw." + outputTableName} # Parâmetro do processo
+      - preSQLTruncate: ${"TRUNCATE TABLE csf-core-data-prd.staging." + outputTableName}
+      - querySelect: "SELECT IDADESAO, IDPLANO, IDCARTAOCARREFOUR, IDMEIOPAGAMENTO, TO_CHAR(DATAADESAO, 'YYYY-MM-DD HH24:MI:SS') AS DATAADESAO, CANALADESAO, LOJAADESAO, TO_CHAR(DATAINICIOVIGENCIA, 'YYYY-MM-DD HH24:MI:SS') AS DATAINICIOVIGENCIA, TO_CHAR(DATAFIMVIGENCIA, 'YYYY-MM-DD HH24:MI:SS') AS DATAFIMVIGENCIA, TO_CHAR(DATAINICIOCONTRATO, 'YYYY-MM-DD HH24:MI:SS') AS DATAINICIOCONTRATO, TO_CHAR(DATAFIMCONTRATO, 'YYYY-MM-DD HH24:MI:SS') AS DATAFIMCONTRATO, FLAGADESAOCARTAO, NUMEROCERTIFICADO, CODSEGURANCACARTAO, CODIGOBANCO, NUMEROAGENCIA, DIGITOAGENCIA, NUMEROCONTA, DIGITOCONTA, DIADEBITO, TO_CHAR(DATACANCELAMENTO, 'YYYY-MM-DD HH24:MI:SS') AS DATACANCELAMENTO, CANALCANCELAMENTO, LOJACANCELAMENTO, STATUS, IDMOTIVO, CODVENDEDOR, TO_CHAR(DATAMIGRACAO, 'YYYY-MM-DD HH24:MI:SS') AS DATAMIGRACAO, IDADESAOANTERIOR, TIPOVENDA, FATORREAJUSTE, CODVENDEDORCANC, TO_CHAR(DATARENOVACAO, 'YYYY-MM-DD HH24:MI:SS') AS DATARENOVACAO, CODVENDEDORRENOV, TO_CHAR(DATAINCLUSAO, 'YYYY-MM-DD HH24:MI:SS') AS DATAINCLUSAO, TO_CHAR(DATAATUALIZACAO, 'YYYY-MM-DD HH24:MI:SS') AS DATAATUALIZACAO, ASSINATURADIGITAL" # Parâmetro do processo
+      - queryFrom: " FROM DEBREC.TBADESAO" # Parâmetro do processo
+      - queryWhere: " WHERE (DATAADESAO > TO_DATE('" # Parâmetro do processo
+      - queryControle1: "', 'YYYY-MM-DD HH24:MI:SS') AND DATAADESAO < CURRENT_DATE) OR (DATAATUALIZACAO > TO_DATE('" # Parâmetro do processo
+      - queryControle2: "', 'YYYY-MM-DD HH24:MI:SS') AND DATAATUALIZACAO < CURRENT_DATE)" # Parâmetro do processo
+      - outputTableString: ${"csf-core-data-prd:staging." + outputTableName}
+
+- get_username_secret:
+        call: googleapis.secretmanager.v1.projects.secrets.versions.accessString
+        args:
+            secret_id: ${username_token_id}
+            project_id: ${project_id}
+        result: user_connection
+
+- get_password_secret:
+        call: googleapis.secretmanager.v1.projects.secrets.versions.accessString
+        args:
+            secret_id: ${password_token_id}
+            project_id: ${project_id}
+        result: pass_connection
+
+- get_connection_secret:
+        call: googleapis.secretmanager.v1.projects.secrets.versions.accessString
+        args:
+            secret_id: ${connection_token_id}
+            project_id: ${project_id}
+        result: connect_connection
+
+- select_datetime:
+        call: googleapis.bigquery.v2.jobs.query
+        args:
+            projectId: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+            body:
+                useLegacySql: false
+                useQueryCache: false
+                timeoutMs: 30000
+                query: ${preSQLDatetime}
+        result: datetime
+
+- intermediate:
+    assign:
+      - datetime1: ${datetime.rows[0].f[0].v}
+      - datetime2: ${datetime.rows[0].f[1].v}
+      - queryString: ${querySelect + queryFrom + queryWhere + datetime1 + queryControle1 + datetime2 + queryControle2}
+
+- truncate_output_table:
+        call: googleapis.bigquery.v2.jobs.query
+        args:
+            projectId: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+            body:
+                useLegacySql: false
+                useQueryCache: false
+                timeoutMs: 30000
+                query: ${preSQLTruncate}
+
+- create_job:
+    call: googleapis.dataflow.v1b3.projects.locations.flexTemplates.launch
+    args:
+      projectId: ${project_id}
+      location: ${location}
+      body:
+        launchParameter:
+          jobName: ${job_name + "-" + text.substring(time.format(sys.now()), 0, 10)}
+          parameters:
+            useStorageWriteApi: "true"
+            useColumnAlias: "true"
+            connectionURL: ${connect_connection}
+            query: ${queryString}
+            outputTable: ${outputTableString}
+            fetchSize: ${fetchSizeString}
+            bigQueryLoadingTemporaryDirectory: "gs://workflow-core-data-us-east1/bigquery-tmp-dir"
+            username: ${user_connection}
+            password: ${pass_connection}
+            KMSEncryptionKey: ${KMSEncryptString}
+            connectionProperties: ${connectionPropertiesString}
+            numWorkers: "1"
+            maxNumWorkers: "5"
+            workerMachineType: "n1-standard-8"
+          environment:
+            tempLocation: ${temp_location}
+            serviceAccountEmail: ${service_account}
+            subnetwork: "https://www.googleapis.com/compute/v1/projects/csf-net-sharedvpc-prd-1/regions/southamerica-east1/subnetworks/csf-subnet-prd-core-data-resources-sa-east1"
+            network: "csf-net-sharedvpc-prd-1"
+          containerSpecGcsPath: ${template_path}
+
+- the_end:
+    return: "SUCCESS"

@@ -1,0 +1,71 @@
+# Desenvolvido pelo time da Fábrica de Ingestão ATRA Consultoria.
+# [Oracle] Processo de captura dos metadados da tabela transacional
+
+- init:
+    assign:
+      - project_id: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+      - location: "southamerica-east1"
+      - job_name: "sisbon-tsb-transacao-get-metadata-crt"
+      - temp_location: ${"gs://dataflow-staging-" + location + "-1080416849631/tmp"}
+      - template_path: ${"gs://dataflow-templates-" + location + "/latest/flex/Oracle_to_BigQuery"}
+      - service_account: "service-1080416849631-dataflow@csf-core-data-crt.iam.gserviceaccount.com"
+      - username_token_id: "Oracle_CRT_Username"
+      - password_token_id: "Oracle_BI_Psw"
+      - connection_token_id: "Oracle_CRT_BI_ConnectionString"
+      - connectionPropertiesString: "unicode=true;characterEncoding=UTF-8;defaultRowPrefetch=350000"
+      - KMSEncryptString: "projects/csf-core-data-crt/locations/global/keyRings/oracle_JDBC_ring/cryptoKeys/oracle_JDBC_key"
+      - queryString: "SELECT META.OWNER || '.' || META.TABLE_NAME AS TABELA, TCOMMENTS.COMMENTS AS DESCRICAO_TABELA, META.COLUMN_NAME AS COLUNA, CCOMMENTS.COMMENTS AS DESCRICAO_COLUNA, META.DATA_TYPE AS TIPO, CASE WHEN META.DATA_PRECISION IS NOT NULL THEN META.DATA_PRECISION || ',' || META.DATA_SCALE ELSE TO_CHAR(META.CHAR_LENGTH) END AS TAMANHO, META.DATA_DEFAULT AS VALOR_DEFAULT, META.NULLABLE AS PERMITE_NULL, META.COLUMN_ID AS POSICAO_COLUNA, IND.UNIQUENESS AS DADO_UNICO, CONS.CONSTRAINT_TYPE AS TIPO_CONSTRAINT, CONS.CONSTRAINT_NAME AS NOME_CONSTRAINT, IND_COL.INDEX_NAME AS NOME_INDICE, IND_COL.COLUMN_POSITION AS POSICAO_INDICE, DATA.QTD_LINHAS, DATA.MIN_DATE_1, DATA.MAX_DATE_1, DATA.MIN_DATE_2, DATA.MAX_DATE_2, TO_CHAR(SYSDATE, 'YYYY-MM-DD HH24:MI:SS') AS DATAHORA_ATUAL FROM ALL_TAB_COLUMNS META LEFT JOIN ALL_TAB_COMMENTS TCOMMENTS ON META.OWNER = TCOMMENTS.OWNER AND META.TABLE_NAME = TCOMMENTS.TABLE_NAME LEFT JOIN ALL_COL_COMMENTS CCOMMENTS ON META.OWNER = CCOMMENTS.OWNER AND META.TABLE_NAME = CCOMMENTS.TABLE_NAME AND META.COLUMN_NAME = CCOMMENTS.COLUMN_NAME LEFT JOIN ALL_CONS_COLUMNS CONS_COL ON META.OWNER = CONS_COL.OWNER AND META.TABLE_NAME = CONS_COL.TABLE_NAME AND META.COLUMN_NAME = CONS_COL.COLUMN_NAME LEFT JOIN ALL_CONSTRAINTS CONS ON CONS_COL.OWNER = CONS.OWNER AND CONS_COL.CONSTRAINT_NAME = CONS.CONSTRAINT_NAME LEFT JOIN ALL_IND_COLUMNS IND_COL ON META.OWNER = IND_COL.TABLE_OWNER AND META.TABLE_NAME = IND_COL.TABLE_NAME AND META.COLUMN_NAME = IND_COL.COLUMN_NAME LEFT JOIN ALL_INDEXES IND ON IND_COL.TABLE_OWNER = IND.OWNER AND IND_COL.TABLE_NAME = IND.TABLE_NAME AND IND_COL.INDEX_NAME = IND.INDEX_NAME CROSS JOIN (SELECT COUNT(1) AS QTD_LINHAS, TO_CHAR(MIN(NULL), 'YYYY-MM-DD HH24:MI:SS') AS MIN_DATE_1, TO_CHAR(MAX(NULL), 'YYYY-MM-DD HH24:MI:SS') AS MAX_DATE_1, TO_CHAR(MIN(NULL), 'YYYY-MM-DD HH24:MI:SS') AS MIN_DATE_2, TO_CHAR(MAX(NULL), 'YYYY-MM-DD HH24:MI:SS') AS MAX_DATE_2 FROM CSF_SB.TSB_TRANSACAO) DATA WHERE META.OWNER = 'CSF_SB' AND META.TABLE_NAME = 'TSB_TRANSACAO'"
+      - outputTableString: "csf-core-data-crt:staging.fabrica_de_ingestao_get_metadata"
+
+- get_username_secret:
+        call: googleapis.secretmanager.v1.projects.secrets.versions.accessString
+        args:
+            secret_id: ${username_token_id}
+            project_id: ${project_id}
+        result: user_connection
+
+- get_password_secret:
+        call: googleapis.secretmanager.v1.projects.secrets.versions.accessString
+        args:
+            secret_id: ${password_token_id}
+            project_id: ${project_id}
+        result: pass_connection
+
+- get_connection_secret:
+        call: googleapis.secretmanager.v1.projects.secrets.versions.accessString
+        args:
+            secret_id: ${connection_token_id}
+            project_id: ${project_id}
+        result: connect_connection
+
+- create_job:
+    call: googleapis.dataflow.v1b3.projects.locations.flexTemplates.launch
+    args:
+      projectId: ${project_id}
+      location: ${location}
+      body:
+        launchParameter:
+          jobName: ${job_name + "-" + text.substring(time.format(sys.now()), 0, 10)}
+          parameters:
+            useStorageWriteApi: "true"
+            useColumnAlias: "true"
+            connectionURL: ${connect_connection}
+            query: ${queryString}
+            outputTable: ${outputTableString}
+            bigQueryLoadingTemporaryDirectory: "gs://csf-core-data-crt/teste_dataflow_tmp/"
+            username: ${user_connection}
+            password: ${pass_connection}
+            KMSEncryptionKey: ${KMSEncryptString}
+            connectionProperties: ${connectionPropertiesString}
+            numWorkers: "1"
+            maxNumWorkers: "5"
+            workerMachineType: "n1-standard-8"
+          environment:
+            tempLocation: ${temp_location}
+            serviceAccountEmail: ${service_account}
+            subnetwork: "https://www.googleapis.com/compute/v1/projects/csf-net-sharedvpc-crt-1/regions/southamerica-east1/subnetworks/csf-subnet-crt-core-data-resources-sa-east1"
+            network: "csf-net-sharedvpc-crt-1"
+          containerSpecGcsPath: ${template_path}
+
+- the_end:
+    return: "SUCCESS"

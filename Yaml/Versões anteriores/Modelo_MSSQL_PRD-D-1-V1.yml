@@ -1,0 +1,106 @@
+# Desenvolvido pelo time da Fábrica de Ingestão ATRA Consultoria.
+# [MSSQL] Processo diário (D -1) para leitura dos dados de tabelas transacionais
+
+- init:
+    assign:
+      - project_id: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+      - location: "southamerica-east1"
+      - job_name: "p0028it-pr-credito-tb-titular-info-profissional-exec-mssql-inc-prd" # Parâmetro do processo
+      - temp_location: "gs://workflow-core-data-us-east1/workflow-jobs/frente_migracao_dados_historicos_oracle"
+      - template_path: ${"gs://dataflow-templates-" + location + "/latest/flex/SQLServer_to_BigQuery"}
+      - service_account: "csf-core-data-workflow@csf-core-data-prd.iam.gserviceaccount.com"
+      - username_token_id: "MSSQL_PRD_Username" # Parâmetro do processo
+      - password_token_id: "MSSQL_AGSQLPRP_PRD_Psw" # Parâmetro do processo
+      - connection_token_id: "MSSQL_PRD_AGSQLPRP_ConnectionString" # Parâmetro do processo
+      - databaseName: "Credito" # Parâmetro do processo
+      - connectionPropertiesString: ${"database=" + databaseName + ";encrypt=true;trustServerCertificate=true"}
+      - KMSEncryptString: "projects/csf-core-data-prd/locations/global/keyRings/MSSQL_Ring/cryptoKeys/MSSQL_Key"
+      - outputTableName: "pr_credito_tb_titular_info_profissional" # Parâmetro do processo
+      - preSQLDatetime: ${"SELECT IFNULL(FORMAT_DATETIME('%Y-%m-%d %H:%M:%S', MAX(dh_criac)), '1900-01-01 00:00:00'), IFNULL(FORMAT_DATETIME('%Y-%m-%d %H:%M:%S', MAX(dh_alt)), '1900-01-01 00:00:00') FROM csf-core-data-prd.raw." + outputTableName} # Parâmetro do processo
+      - preSQLTruncate: ${"TRUNCATE TABLE csf-core-data-prd.staging." + outputTableName}
+      - querySelect: "SELECT id_titinfoprofis, cd_atvdeprofistit, cd_profistit, nm_emprstit, nu_cnpjemprstit, id_titende, CONVERT(VARCHAR, dt_admittit, 120) AS dt_admittit, vl_rendainfotit, vl_rendacomprovtit, cd_tipocomprovrenda, nu_beneftit, nm_usucriac, nm_usualt, CONVERT(VARCHAR, dh_criac, 120) AS dh_criac, CONVERT(VARCHAR, dh_alt, 120) AS dh_alt, cd_drttit, vl_rendautiltit, fg_rendacomprovtit" # Parâmetro do processo
+      - queryFrom: " FROM TB_TITULAR_INFO_PROFISSIONAL WITH (NOLOCK)" # Parâmetro do processo
+      - queryWhere: " WHERE (dh_criac > CONVERT(DATETIME, '" # Parâmetro do processo
+      - queryControle1: "', 120) AND dh_criac < CAST(GETDATE() AS DATE)) OR (dh_alt > CONVERT(DATETIME, '" # Parâmetro do processo
+      - queryControle2: "', 120) AND dh_alt < CAST(GETDATE() AS DATE))" # Parâmetro do processo
+      - outputTableString: ${"csf-core-data-prd:staging." + outputTableName}
+
+- get_username_secret:
+        call: googleapis.secretmanager.v1.projects.secrets.versions.accessString
+        args:
+            secret_id: ${username_token_id}
+            project_id: ${project_id}
+        result: user_connection
+
+- get_password_secret:
+        call: googleapis.secretmanager.v1.projects.secrets.versions.accessString
+        args:
+            secret_id: ${password_token_id}
+            project_id: ${project_id}
+        result: pass_connection
+
+- get_connection_secret:
+        call: googleapis.secretmanager.v1.projects.secrets.versions.accessString
+        args:
+            secret_id: ${connection_token_id}
+            project_id: ${project_id}
+        result: connect_connection
+
+- select_datetime:
+        call: googleapis.bigquery.v2.jobs.query
+        args:
+            projectId: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+            body:
+                useLegacySql: false
+                useQueryCache: false
+                timeoutMs: 30000
+                query: ${preSQLDatetime}
+        result: datetime
+
+- intermediate:
+    assign:
+      - datetime1: ${datetime.rows[0].f[0].v}
+      - datetime2: ${datetime.rows[0].f[1].v}
+      - queryString: ${querySelect + queryFrom + queryWhere + datetime1 + queryControle1 + datetime2 + queryControle2}
+
+- truncate_output_table:
+        call: googleapis.bigquery.v2.jobs.query
+        args:
+            projectId: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+            body:
+                useLegacySql: false
+                useQueryCache: false
+                timeoutMs: 30000
+                query: ${preSQLTruncate}
+
+- create_job:
+    call: googleapis.dataflow.v1b3.projects.locations.flexTemplates.launch
+    args:
+      projectId: ${project_id}
+      location: ${location}
+      body:
+        launchParameter:
+          jobName: ${job_name + "-" + text.substring(time.format(sys.now()), 0, 10)}
+          parameters:
+            useStorageWriteApi: "true"
+            useColumnAlias: "true"
+            connectionURL: ${connect_connection}
+            query: ${queryString}
+            outputTable: ${outputTableString}
+            bigQueryLoadingTemporaryDirectory: "gs://csf-core-data-prd/teste_dataflow_tmp/"
+            username: ${user_connection}
+            password: ${pass_connection}
+            KMSEncryptionKey: ${KMSEncryptString}
+            connectionProperties: ${connectionPropertiesString}
+            numWorkers: "1"
+            maxNumWorkers: "5"
+            workerMachineType: "n1-standard-8"
+          environment:
+            tempLocation: ${temp_location}
+            serviceAccountEmail: ${service_account}
+            subnetwork: "https://www.googleapis.com/compute/v1/projects/csf-net-sharedvpc-prd-1/regions/southamerica-east1/subnetworks/csf-subnet-prd-core-data-resources-sa-east1"
+            network: "csf-net-sharedvpc-prd-1"
+          containerSpecGcsPath: ${template_path}
+
+- the_end:
+    return: "SUCCESS"

@@ -1,0 +1,126 @@
+# Desenvolvido pelo time da Fábrica de Ingestão ATRA Consultoria
+# [Oracle] Processo para leitura Full dos dados da tabela ODS
+
+main:
+  steps:
+
+    # Atribui os valores iniciais para as variáveis
+    - init:
+        assign:
+          - project_id: ${sys.get_env("GOOGLE_CLOUD_PROJECT_ID")}
+          - location: "southamerica-east1"
+          - temp_location: ${"gs://dataflow-staging-" + location + "-1080416849631/tmp"}
+          - template_path: ${"gs://dataflow-templates-" + location + "/latest/flex/Oracle_to_BigQuery"}
+          - service_account: "service-1080416849631-dataflow@csf-core-data-crt.iam.gserviceaccount.com"
+          - connectionPropertiesString: "collation_connection=utf8mb4_0900_ai_ci;characterEncoding=UTF-8;defaultRowPrefetch=350000"
+          - KMSEncryptString: "projects/csf-core-data-crt/locations/global/keyRings/oracle_JDBC_ring/cryptoKeys/oracle_JDBC_key"
+          - username_token_id: "Oracle_CRT_Username" # Parâmetro do processo
+          - password_token_id: "Oracle_BI_Psw" # Parâmetro do processo
+          - connection_token_id: "Oracle_CRT_BI_ConnectionString" # Parâmetro do processo
+          - job_name: "p0135i-genesys-infomart-pausas-agentes-hist-crt" # Parâmetro do processo
+          - outputTableName: "genesys_infomart_pausas_agentes" # Parâmetro do processo
+          - querySelect: "SELECT TATE_ID_PROD_CRF_PAUSAS_AGENTE, TO_CHAR(TATE_DT_ATEND, 'YYYY-MM-DD HH24:MI:SS') AS TATE_DT_ATEND, TATE_NM_AGENTE, TATE_ID_AGENTE, TATE_PC_TEMPOINTERVEN, TATE_QT_TEMPOINTERVEN, TATE_NU_TREINTEMPOINTERVEN, TATE_QT_TREININTERVEN, TATE_NU_WCTEMPOINTERVEN, TATE_QT_WCINTERVEN, TATE_NU_ALIMTEMPOINTERVEN, TATE_QT_ALIMINTERVEN, TATE_NU_FEEDBACKTEMPOINTERVEN, TATE_QT_FEEDBACKINTERVEN, TATE_NU_AUXSISTTEMPO, TATE_QT_AUXSIST, TATE_NU_GINASTTEMPO, TATE_QT_GINAST, TATE_NU_REUNITEMPO, TATE_QT_REUNI, TATE_NU_10INTERVEN10TEMPO, TATE_QT_10INTERVEN10, TATE_NU_SAIDATEMPO, TATE_QT_SAIDA, TATE_NU_AIFTEMPO, TATE_QT_AIF, TATE_NU_SERVADMTEMPO, TATE_QT_SERVADM, TATE_NU_FONOTEMPO, TATE_QT_FONO, TATE_NU_EXAMPERIODTEMPO, TATE_QT_EXAMPERIOD, TATE_NU_INTERVEXTRATEMPO, TATE_QT_INTERVEXTRA, TATE_NU_DIAMONITORTEMPO, TATE_QT_DIAMONITORTEMPO, TATE_NU_CONTTATIVOTEMPO, TATE_QT_CONTTATIVO, TATE_NU_ESCUTATEMPO, TATE_QT_ESCUTA, TATE_NU_INTERVCHATTEMPO, TATE_QT_INTERVCHAT, TO_CHAR(TATE_DT_INCLUSAO, 'YYYY-MM-DD HH24:MI:SS') AS TATE_DT_INCLUSAO, TO_CHAR(TATE_DT_ALTERACAO, 'YYYY-MM-DD HH24:MI:SS') AS TATE_DT_ALTERACAO, TATE_FG_REGATIVO, TATE_DS_CARACATEND, TO_CHAR(TRUNC(COALESCE(TATE_DT_ALTERACAO, TATE_DT_INCLUSAO), 'MONTH'), 'YYYY-MM-DD HH24:MI:SS') ingestion_timestamp, 'ORACLE/PRD01_BI_ODS.TODS_PROD_CRF_PAUSAS_AGENTES' ingestion_source_file, NULL ingestion_proc_datetime, TO_NUMBER(TO_CHAR(COALESCE(TATE_DT_ALTERACAO, TATE_DT_INCLUSAO), 'YYYYMMDD')) ingestion_ref_date" # Parâmetro do processo
+          - queryFrom: " FROM DES01_BI_ODS.TODS_PROD_CRF_PAUSAS_AGENTES" # Parâmetro do processo
+          - queryString: ${querySelect + queryFrom}
+          - outputTableString: ${project_id + ":raw." + outputTableName}
+          - failureStatuses: ["JOB_STATE_FAILED", "JOB_STATE_CANCELLED", "JOB_STATE_UPDATED", "JOB_STATE_DRAINED"]
+          - currentStatus: ""
+
+    # Obtém o usuário da conexão
+    - get_username_secret:
+        call: googleapis.secretmanager.v1.projects.secrets.versions.accessString
+        args:
+          secret_id: ${username_token_id}
+          project_id: ${project_id}
+        result: user_connection
+
+    # Obtém a senha da conexão
+    - get_password_secret:
+        call: googleapis.secretmanager.v1.projects.secrets.versions.accessString
+        args:
+          secret_id: ${password_token_id}
+          project_id: ${project_id}
+        result: pass_connection
+
+    # Obtém o token da conexão
+    - get_connection_secret:
+        call: googleapis.secretmanager.v1.projects.secrets.versions.accessString
+        args:
+          secret_id: ${connection_token_id}
+          project_id: ${project_id}
+        result: connect_connection
+
+    # Gera o job Dataflow
+    - create_job:
+        call: googleapis.dataflow.v1b3.projects.locations.flexTemplates.launch
+        args:
+          projectId: ${project_id}
+          location: ${location}
+          body:
+            launchParameter:
+              jobName: ${job_name + "-" + text.substring(time.format(sys.now()), 0, 10)}
+              containerSpecGcsPath: ${template_path}
+              environment:
+                tempLocation: ${temp_location}
+                serviceAccountEmail: ${service_account}
+                subnetwork: "https://www.googleapis.com/compute/v1/projects/csf-net-sharedvpc-crt-1/regions/southamerica-east1/subnetworks/csf-subnet-crt-core-data-resources-sa-east1"
+                network: "csf-net-sharedvpc-crt-1"
+              parameters:
+                useStorageWriteApi: "true"
+                useColumnAlias: "true"
+                connectionURL: ${connect_connection}
+                query: ${queryString}
+                outputTable: ${outputTableString}
+                bigQueryLoadingTemporaryDirectory: "gs://csf-core-data-crt/teste_dataflow_tmp/"
+                username: ${user_connection}
+                password: ${pass_connection}
+                KMSEncryptionKey: ${KMSEncryptString}
+                connectionProperties: ${connectionPropertiesString}
+                numWorkers: "1"
+                maxNumWorkers: "1"
+                workerMachineType: "n1-standard-16"
+        result: launchResponse
+
+    # Verifica o status do job Dataflow
+    - check_job_status:
+        switch:
+          - condition: ${currentStatus in failureStatuses}
+            next: assign_failure
+          - condition: ${currentStatus != "JOB_STATE_DONE"}
+            next: iterate
+        next: assign_success
+
+    # Obtém o status do job Dataflow
+    - iterate:
+        steps:
+          - sleep_iterate:
+              call: sys.sleep
+              args:
+                seconds: 60
+          - get_job_status:
+              call: googleapis.dataflow.v1b3.projects.locations.jobs.get
+              args:
+                jobId: ${launchResponse.job.id}
+                location: ${launchResponse.job.location}
+                projectId: ${launchResponse.job.projectId}
+                view: "JOB_VIEW_SUMMARY"
+              result: getJobResponse
+          - getStatus:
+              assign:
+                - currentStatus: ${getJobResponse.currentState}
+        next: check_job_status
+
+    # Atribui o valor de "Sucesso" para a saída
+    - assign_success:
+        assign:
+          - outputStatus: "Sucesso"
+        next: the_end
+
+    # Atribui o valor de "Falha" para a saída
+    - assign_failure:
+        assign:
+          - outputStatus: "Falha"
+
+    # Retorna o valor da saída
+    - the_end:
+        return: ${outputStatus}
